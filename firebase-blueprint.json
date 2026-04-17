@@ -1,0 +1,149 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "A skincare product in the Furfur catalog.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "The name of the product."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the product."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the product."
+        },
+        "image": {
+          "type": "string",
+          "description": "The URL of the primary product image."
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of product image URLs.",
+          "items": { "type": "string" }
+        },
+        "skinType": {
+          "type": "string",
+          "description": "The target skin type (e.g., 'All', 'Oily', 'Dry')."
+        },
+        "rating": {
+          "type": "number",
+          "description": "The average customer rating (1-5)."
+        },
+        "benefits": {
+          "type": "array",
+          "description": "List of key benefits.",
+          "items": { "type": "string" }
+        },
+        "variants": {
+          "type": "array",
+          "description": "Product variants with size and pricing.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "size": { "type": "string" },
+              "mrp": { "type": "number" },
+              "price": { "type": "number" }
+            }
+          }
+        },
+        "ingredients": {
+          "type": "array",
+          "description": "List of ingredients and their benefits.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "benefit": { "type": "string" }
+            }
+          }
+        }
+      },
+      "required": ["name", "price", "image", "skinType", "rating"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "A customer order.",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "addressLine1": { "type": "string" },
+        "addressLine2": { "type": "string" },
+        "city": { "type": "string" },
+        "state": { "type": "string" },
+        "postalCode": { "type": "string" },
+        "items": { "type": "array" },
+        "totalPrice": { "type": "number" },
+        "paymentMethod": { "type": "string", "enum": ["COD", "UPI"] },
+        "paymentStatus": { "type": "string" },
+        "orderStatus": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "paymentScreenshot": { "type": "string" }
+      },
+      "required": ["name", "phone", "email", "addressLine1", "city", "state", "postalCode", "items", "totalPrice", "paymentMethod", "paymentStatus", "orderStatus", "createdAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A registered user.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "createdAt"]
+    },
+    "WishlistItem": {
+      "title": "WishlistItem",
+      "description": "A product saved to a user's wishlist.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "productId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "productId", "createdAt"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "A newsletter subscriber.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "subscribedAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["active", "unsubscribed"] }
+      },
+      "required": ["email", "subscribedAt", "status"]
+    }
+  },
+  "firestore": {
+    "/products/{productId}": {
+      "schema": "Product",
+      "description": "Collection of skincare products."
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Collection of customer orders."
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of registered users."
+    },
+    "/wishlist/{wishlistId}": {
+      "schema": "WishlistItem",
+      "description": "Collection of products saved to user wishlists."
+    },
+    "/subscribers/{subscriberId}": {
+      "schema": "Subscriber",
+      "description": "Collection of newsletter subscribers."
+    }
+  }
+}

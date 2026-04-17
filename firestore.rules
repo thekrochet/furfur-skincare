@@ -1,0 +1,150 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: products
+// Document ID: productId
+// Fields:
+//   - name: string (required) - Product name
+//   - price: string (required) - Product price
+//   - description: string (optional) - Product description
+//   - image: string (required) - Product image URL
+//   - skinType: string (required) - Target skin type
+//   - rating: number (required, 1-5) - Product rating
+//
+// Collection: orders
+// Document ID: orderId
+// Fields:
+//   - name: string (required)
+//   - phone: string (required)
+//   - email: string (required)
+//   - addressLine1: string (required)
+//   - addressLine2: string (optional)
+//   - city: string (required)
+//   - state: string (required)
+//   - postalCode: string (required)
+//   - items: list (required)
+//   - totalPrice: number (required)
+//   - paymentMethod: string (required, COD/UPI)
+//   - paymentStatus: string (required)
+//   - orderStatus: string (required)
+//   - createdAt: timestamp (required)
+//   - paymentScreenshot: string (optional)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper Functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email.lower() == "mohitswami855@gmail.com") ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'image', 'skinType', 'rating']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.price is number &&
+             data.image is string && data.image.matches("^https?://.*") &&
+             data.skinType is string &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll(['productId', 'name', 'rating', 'comment', 'date']) &&
+             data.productId is string && data.productId.size() > 0 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+             data.comment is string && data.comment.size() > 0 && data.comment.size() < 1000 &&
+             data.date is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['name', 'phone', 'email', 'addressLine1', 'city', 'state', 'postalCode', 'items', 'totalPrice', 'paymentMethod', 'paymentStatus', 'orderStatus', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.phone is string && data.phone.matches("^\\d{10}$") &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.addressLine1 is string && data.addressLine1.size() > 0 &&
+             data.city is string && data.city.size() > 0 &&
+             data.state is string && data.state.size() > 0 &&
+             data.postalCode is string && data.postalCode.size() > 0 &&
+             data.items is list && data.items.size() > 0 &&
+             data.totalPrice is number &&
+             data.paymentMethod in ['COD', 'UPI'] &&
+             data.paymentStatus is string &&
+             data.orderStatus == 'new' &&
+             data.createdAt is timestamp &&
+             (!('userId' in data) || data.userId == request.auth.uid);
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'createdAt']) &&
+             data.name is string && data.name.size() > 0 &&
+             data.email is string && data.email == request.auth.token.email &&
+             data.createdAt is timestamp;
+    }
+
+    function isValidWishlistItem(data) {
+      return data.keys().hasAll(['userId', 'productId', 'createdAt']) &&
+             data.userId == request.auth.uid &&
+             data.productId is string && data.productId.size() > 0 &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // NOTE: Authentication protection will be added later.
+    // For development convenience, these collections are currently public.
+    // ===============================================================
+
+    match /_connection_test_/{docId} {
+      allow read: if true;
+    }
+
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
+    }
+
+    match /orders/{orderId} {
+      allow read, write: if true;
+    }
+
+    match /users/{userId} {
+      // Users can read and write their own profile
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data);
+      allow update: if isAuthenticated() && request.auth.uid == userId && isValidUser(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /wishlist/{wishlistId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated() && isValidWishlistItem(request.resource.data);
+      allow delete: if isAuthenticated() && resource.data.userId == request.auth.uid;
+    }
+
+    match /subscribers/{subscriberId} {
+      allow create: if request.resource.data.keys().hasAll(['email', 'subscribedAt', 'status']) &&
+                      request.resource.data.email is string &&
+                      request.resource.data.status == 'active';
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}
